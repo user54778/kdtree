@@ -11,6 +11,15 @@ namespace kdtree {
 template <std::size_t N, typename T = double> struct Point {
   std::array<T, N> data_;
 
+  Point(const std::array<T, N> &data) { data = data_; }
+
+  // Called "Perfect Forwarding", used to pass a function's parameters to
+  // another function while preserving its reference category. I.e., pass
+  // parameter to another function (a constructor)
+  template <typename... Args>
+  Point(Args &&...args)
+      : data_{static_cast<double>(std::forward<Args>(args))...} {}
+
   // Define the `[]` operator for coordinate access
   T &operator[](std::size_t i) { return data_[i]; }
   const T &operator[](std::size_t i) const { return data_[i]; }
@@ -70,19 +79,40 @@ void quickSelect(RandIter begin, RandIter end, RandIter k, Comparator cmp) {
   }
 }
 
+// `smallerDimensionValue` returns a truth value of if the first `Point` has a
+// smaller value than the second in the dimension `currDim`.
+template <std::size_t Dim, typename T = double>
+bool smallerDimensionValue(const Point<Dim, T> &first,
+                           const Point<Dim, T> &second, std::size_t currDim) {
+
+  if (first.data_[currDim] < second.data_[currDim]) {
+    return true;
+  } else if (first.data_[currDim] > second.data_[currDim]) {
+    return false;
+  } else {
+    return first < second;
+  }
+}
+
 // Take three `Point`s in and return `true` if the `potential` point is closer
 // to `target` than the `currentBest` point.
 template <std::size_t Dim, typename T = double>
 bool shouldReplace(const Point<Dim, T> &target,
                    const Point<Dim, T> &currentBest,
                    const Point<Dim, T> &potential) {
-  // TODO: implement me!
+  return computeDist(potential, target) < computeDist(currentBest, target);
 }
 
 template <std::size_t Dim, typename T = double>
-bool smallerDimensionValue(const Point<Dim, T> &first,
-                           const Point<Dim, T> &second, std::size_t currDim) {
-  // TODO: implement me!
+T computeDist(const Point<Dim, T> &p, const Point<Dim, T> &q) {
+  T dist = 0;
+
+  for (std::size_t i = 0; i < Dim; i++) {
+    T diff = p.data_[i] - q.data_[i];
+    T sq = diff * diff;
+    dist += sq;
+  }
+  return dist;
 }
 
 template <std::size_t Dim, typename T = double> class KDTree {
@@ -90,9 +120,15 @@ template <std::size_t Dim, typename T = double> class KDTree {
   ~KDTree();
   // TODO: What other operations on a KDTree should there be (Rule of 0 or 5?)
 
+  // TODO: helpers
+  void insert();
+  void remove();
+
   // Find the closest point to the point `query` in the `KDTree`.
   Point<Dim, T> findNearestNeighbor(const Point<Dim, T> &query) const;
   // Print the KDTree.
   void printTree(std::ostream &out = std::cout) const;
+
+private:
 };
 } // namespace kdtree
