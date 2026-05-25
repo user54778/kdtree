@@ -5,6 +5,11 @@
 int main() {
   std::cout << "Hello, kdtree world!" << std::endl;
 
+  std::vector<kdtree::Point<3>> points = {{1, 2, 3}, {3, 2, 1}, {2, 3, 1}};
+
+  kdtree::KDTree<3> tree(points);
+  tree.printTree();
+
   /*
   std::vector<int> vec = {1, 5, 3, 9, 10, 12, 4, 5, 11, 13, 3, 2, 52};
 
@@ -17,6 +22,7 @@ int main() {
   kdtree::quickSelect(vec2.begin(), vec2.end(), vec2.begin(), std::less<int>());
   */
 
+  /*
   kdtree::Point<3> a(1, 2, 3);
   kdtree::Point<3> b(3, 2, 1);
 
@@ -37,4 +43,5 @@ int main() {
             << std::endl; // should print false
   std::cout << shouldReplace(target, currentBest3, possibleBest3)
             << std::endl; // based on operator<, this should be false!!!
+  // */
 }
