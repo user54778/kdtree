@@ -88,7 +88,6 @@ void quickSelect(RandIter begin, RandIter end, RandIter k, Comparator cmp) {
 
   RandIter pivotIndex = partitionSelect(begin, end, cmp);
   if (pivotIndex == k) {
-    std::cout << "k-th smallest\n";
     return;
   } else if (pivotIndex < k) {
     quickSelect(pivotIndex + 1, end, k, cmp);
@@ -146,14 +145,14 @@ private:
   std::unique_ptr<Node> root_;
 
   // Print the KDTree.
-  void printTree(const std::unique_ptr<Node> &node, int depth,
+  void printTree(const std::unique_ptr<Node> &node, int depth, char label,
                  std::ostream &out = std::cout) const {
     if (node == nullptr) {
       return;
     }
-    printTree(node->left, depth + 1, out);
-    out << std::string(depth * 4, ' ') << node->point << "\n";
-    printTree(node->right, depth + 1, out);
+    printTree(node->left, depth + 1, 'L', out);
+    out << std::string(depth * 4, ' ') << label << ": " << node->point << "\n";
+    printTree(node->right, depth + 1, 'R', out);
   }
 
 public:
@@ -161,8 +160,6 @@ public:
   // it recursively. A valid KDTree should always be built from a collection of
   // points; an "empty" KDTree doesn't make sense.
   KDTree(const std::vector<Point<Dim, T>> &newPoints) {
-    // TODO: walk the tree from the `root_` and construct it recursively
-
     // cycle through `k` dims to split the planes
     // points inserted by `quickSelect`ing the median of the points in
     // that subtree, *based on the k-th dimension we're in*.
@@ -170,8 +167,6 @@ public:
     // generalized version of one.
     auto points = newPoints;
     root_ = createTree(points, 0, points.size() - 1, 0);
-
-    printTree(root_, 0);
   }
   // A helper function that performs the recursion.
   // `depth` is the recursion depth we're on, used to properly cycle the axis
@@ -179,7 +174,16 @@ public:
   std::unique_ptr<Node> createTree(std::vector<Point<Dim, T>> &pointList,
                                    int left, int right, int depth) {
     if (pointList.empty() || left > right) {
+      std::cout << "empty or l > r" << std::endl;
       return nullptr;
+    }
+
+    // leaf
+    if (left == right) {
+      std::cout << "making leaf node" << std::endl;
+      auto leaf = std::make_unique<Node>();
+      leaf->point = pointList[left];
+      return leaf;
     }
 
     int axis = depth % Dim; // dimension to cmp on
@@ -198,6 +202,11 @@ public:
 
     quickSelect(pointList.begin() + left, pointList.begin() + right + 1,
                 pointList.begin() + k, cmp);
+
+    for (int i = left; i <= right; i++) {
+      std::cout << pointList[i] << " ";
+    }
+    std::cout << std::endl;
 
     std::unique_ptr<Node> node = std::make_unique<Node>();
     node->point = pointList[k];
@@ -230,7 +239,7 @@ public:
   Point<Dim, T> findNearestNeighbor(const Point<Dim, T> &query) const;
 
   void printTree(std::ostream &out = std::cout) const {
-    printTree(root_, 0, out);
+    printTree(root_, 0, '*', out);
   }
 };
 } // namespace kdtree
