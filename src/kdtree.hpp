@@ -155,19 +155,18 @@ private:
     printTree(node->right, depth + 1, 'R', out);
   }
 
-public:
-  // Construct the KDTree by walking the tree from its `root` and constructing
-  // it recursively. A valid KDTree should always be built from a collection of
-  // points; an "empty" KDTree doesn't make sense.
-  KDTree(const std::vector<Point<Dim, T>> &newPoints) {
-    // cycle through `k` dims to split the planes
-    // points inserted by `quickSelect`ing the median of the points in
-    // that subtree, *based on the k-th dimension we're in*.
-    // It should look very similar to constructing a BST, as this is a
-    // generalized version of one.
-    auto points = newPoints;
-    root_ = createTree(points, 0, points.size() - 1, 0);
+  std::unique_ptr<Node> copyTree(const std::unique_ptr<Node> &node) {
+    if (node == nullptr) {
+      return nullptr;
+    }
+
+    auto currNode = std::make_unique<Node>();
+    currNode->point = node->point;
+    currNode->left = node->left;
+    currNode->right = node->right;
+    return currNode;
   }
+
   // A helper function that performs the recursion.
   // `depth` is the recursion depth we're on, used to properly cycle the axis
   // through all `k` values.
@@ -216,30 +215,90 @@ public:
     return node;
   }
 
-  ~KDTree() {
-    // TODO: walk the tree from the `root_` and destroy it recursively
-  }
-  // Copy; no need for move since we use `unique_ptr`
-  KDTree(const KDTree &other) {
-    // TODO: implement copy construction
-  }
-  KDTree &operator=(const KDTree &other) {
-    // TODO: implement copy assignment
+public:
+  // Construct the KDTree by walking the tree from its `root` and constructing
+  // it recursively. A valid KDTree should always be built from a collection of
+  // points; an "empty" KDTree doesn't make sense.
+  KDTree(const std::vector<Point<Dim, T>> &newPoints) {
+    // cycle through `k` dims to split the planes
+    // points inserted by `quickSelect`ing the median of the points in
+    // that subtree, *based on the k-th dimension we're in*.
+    // It should look very similar to constructing a BST, as this is a
+    // generalized version of one.
+    auto points = newPoints;
+    root_ = createTree(points, 0, points.size() - 1, 0);
   }
 
-  // TODO: helpers
-  void insert(Point<Dim, T> &point) {
-    // TODO: insert a point into the KDTree
-  }
-  void remove(Point<Dim, T> &point) {
-    // TODO: remove a point from the KDTree
+  // Uses a `unique_ptr` so the tree will automatically cleanup itself upon
+  // exiting scope.
+  ~KDTree() = default;
+
+  // Copy; no need for move since we use `unique_ptr`
+  KDTree(const KDTree &other) { root_ = copyTree(other.root_); }
+
+  KDTree &operator=(const KDTree &other) {
+    if (this != &other) {
+      root_ = copyTree(other.root_);
+    }
+    return *this;
   }
 
   // Find the closest point to the point `query` in the `KDTree`.
-  Point<Dim, T> findNearestNeighbor(const Point<Dim, T> &query) const;
+  Point<Dim, T> findNearestNeighbor(const Point<Dim, T> &query) const {
+    // TODO: implement me!
+  }
 
   void printTree(std::ostream &out = std::cout) const {
     printTree(root_, 0, '*', out);
   }
 };
 } // namespace kdtree
+/*
+// A helper function that performs the recursion.
+// `depth` is the recursion depth we're on, used to properly cycle the axis
+// through all `k` values.
+std::unique_ptr<Node> createTree(std::vector<Point<Dim, T>> &pointList,
+                                 int left, int right, int depth) {
+  if (pointList.empty() || left > right) {
+    std::cout << "empty or l > r" << std::endl;
+    return nullptr;
+  }
+
+  // leaf
+  if (left == right) {
+    std::cout << "making leaf node" << std::endl;
+    auto leaf = std::make_unique<Node>();
+    leaf->point = pointList[left];
+    return leaf;
+  }
+
+  int axis = depth % Dim; // dimension to cmp on
+  std::cout << "axis: " << axis << std::endl;
+
+  // select MEDIAN by axis from pointList
+  // NOTE: originally std::size_t, but you have to check for wraparound
+  // since its unsigned
+  int k = (left + right) / 2;
+  std::cout << "k: " << k << std::endl;
+
+  // comparator for quickSelect to call on the given axis
+  auto cmp = [axis](Point<Dim, T> &a, Point<Dim, T> &b) {
+    return smallerDimensionValue(a, b, axis);
+  };
+
+  quickSelect(pointList.begin() + left, pointList.begin() + right + 1,
+              pointList.begin() + k, cmp);
+
+  for (int i = left; i <= right; i++) {
+    std::cout << pointList[i] << " ";
+  }
+  std::cout << std::endl;
+
+  std::unique_ptr<Node> node = std::make_unique<Node>();
+  node->point = pointList[k];
+  node->left = createTree(pointList, left, k - 1, depth + 1);
+  node->right = createTree(pointList, k + 1, right, depth + 1);
+
+  return node;
+}
+*/
