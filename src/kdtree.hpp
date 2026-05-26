@@ -144,7 +144,7 @@ private:
 
   std::unique_ptr<Node> root_;
 
-  // Print the KDTree.
+  // Print a KDTree.
   void printTree(const std::unique_ptr<Node> &node, int depth, char label,
                  std::ostream &out = std::cout) const {
     if (node == nullptr) {
@@ -155,6 +155,7 @@ private:
     printTree(node->right, depth + 1, 'R', out);
   }
 
+  // A helper for deep copying a KDTree.
   std::unique_ptr<Node> copyTree(const std::unique_ptr<Node> &node) {
     if (node == nullptr) {
       return nullptr;
@@ -167,52 +168,54 @@ private:
     return currNode;
   }
 
-  // A helper function that performs the recursion.
+  // A helper to perform the actual creation of a KDTree.
   // `depth` is the recursion depth we're on, used to properly cycle the axis
-  // through all `k` values.
+  // through all `k` dimensions.
   std::unique_ptr<Node> createTree(std::vector<Point<Dim, T>> &pointList,
                                    int left, int right, int depth) {
+    // base case
     if (pointList.empty() || left > right) {
-      std::cout << "empty or l > r" << std::endl;
       return nullptr;
     }
 
-    // leaf
+    // leaf node
     if (left == right) {
-      std::cout << "making leaf node" << std::endl;
       auto leaf = std::make_unique<Node>();
       leaf->point = pointList[left];
       return leaf;
     }
 
     int axis = depth % Dim; // dimension to cmp on
-    std::cout << "axis: " << axis << std::endl;
 
     // select MEDIAN by axis from pointList
-    // NOTE: originally std::size_t, but you have to check for wraparound
-    // since its unsigned
     int k = (left + right) / 2;
-    std::cout << "k: " << k << std::endl;
 
     // comparator for quickSelect to call on the given axis
     auto cmp = [axis](Point<Dim, T> &a, Point<Dim, T> &b) {
       return smallerDimensionValue(a, b, axis);
     };
 
+    // find the median
     quickSelect(pointList.begin() + left, pointList.begin() + right + 1,
                 pointList.begin() + k, cmp);
 
-    for (int i = left; i <= right; i++) {
-      std::cout << pointList[i] << " ";
-    }
-    std::cout << std::endl;
-
+    // recurse
     std::unique_ptr<Node> node = std::make_unique<Node>();
     node->point = pointList[k];
     node->left = createTree(pointList, left, k - 1, depth + 1);
     node->right = createTree(pointList, k + 1, right, depth + 1);
 
     return node;
+  }
+
+  // Returns a leaf of the lowest node within the same splitting plane as
+  // target.
+  Node *searchLowestNode(const Point<Dim, T> &query,
+                         const std::unique_ptr<Node> &node, int depth) const {
+    std::cout << node->point << std::endl;
+    // initial best
+    int axis = depth % Dim; // cmp on this dim
+    // TODO: implement me!
   }
 
 public:
@@ -244,8 +247,26 @@ public:
   }
 
   // Find the closest point to the point `query` in the `KDTree`.
+  // The closest here is the minimum Euclidean distance between elements.
   Point<Dim, T> findNearestNeighbor(const Point<Dim, T> &query) const {
     // TODO: implement me!
+
+    // starting at the root node, perform dfs on the kd-tree to determine where
+    // to start based on the `query`; i.e., dfs to find the lowest node with the
+    // *same* splitting plane. [call smallerDimensionValue] This determines
+    // which subtree to search.
+    //
+    // Upon reaching a leaf node, compute the distance (Euclidean) [call
+    // shouldReplace] Then *search points within the radius*. If the hypersphere
+    // crosses the plane, there could be closer points to the other side of the
+    // plane. If not, walk up the tree. I.e., If the distance from the target to
+    // split the plane is still within the current radius, search the other
+    // subtree.
+
+    auto leaf = searchLowestNode(query, root_, 0);
+    std::cout << "leaf: " << leaf->point << std::endl;
+
+    return Point<Dim, T>();
   }
 
   void printTree(std::ostream &out = std::cout) const {
@@ -253,52 +274,3 @@ public:
   }
 };
 } // namespace kdtree
-/*
-// A helper function that performs the recursion.
-// `depth` is the recursion depth we're on, used to properly cycle the axis
-// through all `k` values.
-std::unique_ptr<Node> createTree(std::vector<Point<Dim, T>> &pointList,
-                                 int left, int right, int depth) {
-  if (pointList.empty() || left > right) {
-    std::cout << "empty or l > r" << std::endl;
-    return nullptr;
-  }
-
-  // leaf
-  if (left == right) {
-    std::cout << "making leaf node" << std::endl;
-    auto leaf = std::make_unique<Node>();
-    leaf->point = pointList[left];
-    return leaf;
-  }
-
-  int axis = depth % Dim; // dimension to cmp on
-  std::cout << "axis: " << axis << std::endl;
-
-  // select MEDIAN by axis from pointList
-  // NOTE: originally std::size_t, but you have to check for wraparound
-  // since its unsigned
-  int k = (left + right) / 2;
-  std::cout << "k: " << k << std::endl;
-
-  // comparator for quickSelect to call on the given axis
-  auto cmp = [axis](Point<Dim, T> &a, Point<Dim, T> &b) {
-    return smallerDimensionValue(a, b, axis);
-  };
-
-  quickSelect(pointList.begin() + left, pointList.begin() + right + 1,
-              pointList.begin() + k, cmp);
-
-  for (int i = left; i <= right; i++) {
-    std::cout << pointList[i] << " ";
-  }
-  std::cout << std::endl;
-
-  std::unique_ptr<Node> node = std::make_unique<Node>();
-  node->point = pointList[k];
-  node->left = createTree(pointList, left, k - 1, depth + 1);
-  node->right = createTree(pointList, k + 1, right, depth + 1);
-
-  return node;
-}
-*/

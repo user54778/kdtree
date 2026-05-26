@@ -3,6 +3,11 @@
 #include <vector>
 
 int main() {
+  std::vector<kdtree::Point<2>> points = {{7, 2}, {5, 4}, {9, 6},
+                                          {2, 3}, {4, 7}, {8, 1}};
+  kdtree::KDTree<2> tree(points);
+
+  tree.findNearestNeighbor(kdtree::Point<2>{6, 3});
   /*
   std::cout << "Hello, kdtree world!" << std::endl;
 
@@ -21,12 +26,14 @@ int main() {
   tree1.printTree();
   */
 
+  /*
   std::vector<kdtree::Point<2>> points = {
       {51, 35}, {44, 43}, {84, 44}, {28, 10}, {43, 65}, {60, 30}, {88, 72},
       {14, 15}, {48, 0},  {42, 63}, {44, 79}, {59, 0},  {74, 0},  {54, 62},
       {95, 50}, {34, 15}, {49, 83}, {82, 20}, {75, 68}, {96, 56}};
   kdtree::KDTree<2> tree2(points);
   tree2.printTree();
+  */
   /*
   std::vector<int> vec = {1, 5, 3, 9, 10, 12, 4, 5, 11, 13, 3, 2, 52};
 
