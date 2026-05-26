@@ -8,6 +8,8 @@ project(k-dtree
         LANGUAGES C CXX
 )
 
+find_package(Catch2 REQUIRED)
+
 add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE lib/)
 
@@ -20,4 +22,7 @@ target_link_libraries(kdtree PUBLIC stb)
 
 add_executable(main src/main.cpp src/stb.cpp)
 target_link_libraries(main PRIVATE kdtree)
+
+add_executable(tests src/kdtree_test.cpp)
+target_link_libraries(tests PRIVATE kdtree Catch2::Catch2WithMain)
 
