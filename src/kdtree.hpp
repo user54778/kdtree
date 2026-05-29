@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <array>
 #include <cuchar>
+#include <initializer_list>
 #include <iostream>
 #include <memory>
 #include <vector>
@@ -14,14 +15,25 @@ namespace kdtree {
 template <std::size_t N, typename T = double> struct Point {
   std::array<T, N> data_;
 
-  Point(const std::array<T, N> &data) { data = data_; }
+  Point() : data_{} {}
+
+  Point(const std::array<T, N> &data) { data_ = data; }
+
+  Point(const Point &other) : data_(other.data_) {}
 
   // Called "Perfect Forwarding", used to pass a function's parameters to
   // another function while preserving its reference category. I.e., pass
   // parameter to another function (a constructor)
+  // NOTE: forwarding constructors read about.
+  // look up SFINAE
+  /*
   template <typename... Args>
-  Point(Args &&...args)
-      : data_{static_cast<double>(std::forward<Args>(args))...} {}
+  Point(Args &&...args) : data_{static_cast<T>(std::forward<Args>(args))...} {}
+  */
+  // initializer_list constructor alternate
+  Point(std::initializer_list<T> init) {
+    std::copy(init.begin(), init.end(), data_.begin());
+  }
 
   // Define the `[]` operator for coordinate access
   T &operator[](std::size_t i) { return data_[i]; }
@@ -188,7 +200,7 @@ private:
     int axis = depth % Dim; // dimension to cmp on
 
     // select MEDIAN by axis from pointList
-    int k = (left + right) / 2;
+    int k = (left + right + 1) / 2;
 
     // comparator for quickSelect to call on the given axis
     auto cmp = [axis](Point<Dim, T> &a, Point<Dim, T> &b) {
@@ -208,14 +220,53 @@ private:
     return node;
   }
 
-  // Returns a leaf of the lowest node within the same splitting plane as
-  // target.
-  Node *searchLowestNode(const Point<Dim, T> &query,
-                         const std::unique_ptr<Node> &node, int depth) const {
-    std::cout << node->point << std::endl;
-    // initial best
-    int axis = depth % Dim; // cmp on this dim
-    // TODO: implement me!
+  // Find a point in the KDTree nearest the given `query` point.
+  // findNearestNeighbor calls this function, which does the actual nearest
+  // neighbor search algorithm.
+  // This follows Moore's algorithm for Nearest Neighbor ina kd-tree.
+  // https://courses.grainger.illinois.edu/cs225/sp2026/assets/assignments/mps/mp_mosaics/moore-tutorial.pdf
+  void nearestNeighborSearch(const std::unique_ptr<Node> &currNode,
+                             const Point<Dim, T> &query,
+                             Point<Dim, T> &bestPoint, T &distSqd,
+                             int depth) const {
+    // Aren't modifying the tree itself (currNode)
+    // aren't modifying the query itself
+    // ARE modifying the bestPoint and distSqd directly, so we simply take by
+    // reference depth is used to switch dimensions const here states we don't
+    // touch the class (we don't we are simply viewers of the class)
+    if (!currNode) {
+      return;
+    }
+
+    // axis we wish to split on
+    int s = depth % Dim;
+    std::cout << "s: " << s << std::endl;
+
+    // median point splitting plane is centered on
+    auto pivot = currNode->point;
+
+    // Moore 5: targetInLeft := target_s <= pivot_s
+    bool targetInLeft = smallerDimensionValue(query, currNode->point, s);
+    // step 6/7
+    // Moore 8: Recurse until a leaf node, checking the node point, and if the
+    // distance is better, update distSqd.
+    if (targetInLeft) {
+      // target is in the left subtree
+      // nearerKD := left subtree of kd, and nearerHR := leftHR (hyperrectangle)
+      // furtherKD := right subtree of kd, furtherHR := rightHR
+      // This is tracked implicitly via the recursion
+      nearestNeighborSearch(currNode->left, query, bestPoint, distSqd,
+                            depth + 1);
+    } else {
+      nearestNeighborSearch(currNode->right, query, bestPoint, distSqd,
+                            depth + 1);
+    }
+    std::cout << currNode->point << std::endl;
+    return;
+    //
+    // Moore 9: Check if any points are on the other side of the splitting plane
+    // (within its radius)
+    // TODO: implement
   }
 
 public:
@@ -249,8 +300,6 @@ public:
   // Find the closest point to the point `query` in the `KDTree`.
   // The closest here is the minimum Euclidean distance between elements.
   Point<Dim, T> findNearestNeighbor(const Point<Dim, T> &query) const {
-    // TODO: implement me!
-
     // starting at the root node, perform dfs on the kd-tree to determine where
     // to start based on the `query`; i.e., dfs to find the lowest node with the
     // *same* splitting plane. [call smallerDimensionValue] This determines
@@ -262,11 +311,10 @@ public:
     // plane. If not, walk up the tree. I.e., If the distance from the target to
     // split the plane is still within the current radius, search the other
     // subtree.
-
-    auto leaf = searchLowestNode(query, root_, 0);
-    std::cout << "leaf: " << leaf->point << std::endl;
-
-    return Point<Dim, T>();
+    Point<Dim, T> bestPoint = root_->point;
+    T distSqd = computeDist(query, root_->point);
+    nearestNeighborSearch(root_, query, bestPoint, distSqd, 0);
+    return bestPoint;
   }
 
   void printTree(std::ostream &out = std::cout) const {

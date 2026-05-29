@@ -1,13 +1,15 @@
 #include "kdtree.hpp"
-#include <iostream>
 #include <vector>
 
 int main() {
-  std::vector<kdtree::Point<2>> points = {{7, 2}, {5, 4}, {9, 6},
-                                          {2, 3}, {4, 7}, {8, 1}};
+  std::vector<kdtree::Point<2, double>> points = {
+      {7.0, 2.0}, {5.0, 4.0}, {9.0, 6.0}, {2.0, 3.0}, {4.0, 7.0}, {8.0, 1.0}};
   kdtree::KDTree<2> tree(points);
 
-  tree.findNearestNeighbor(kdtree::Point<2>{6, 3});
+  tree.printTree();
+
+  kdtree::Point<2, double> p{6.0, 3.0};
+  tree.findNearestNeighbor(p);
   /*
   std::cout << "Hello, kdtree world!" << std::endl;
 
@@ -47,25 +49,28 @@ int main() {
   */
 
   /*
-  kdtree::Point<3> a(1, 2, 3);
-  kdtree::Point<3> b(3, 2, 1);
+  kdtree::Point<3> a{1, 2, 3};
+  kdtree::Point<3> b{3, 2, 1};
 
   std::cout << kdtree::smallerDimensionValue(a, b, 0) << std::endl;
   std::cout << kdtree::smallerDimensionValue(a, b, 2) << std::endl;
   std::cout << kdtree::smallerDimensionValue(a, b, 1) << std::endl;
+  */
+  /*
+  std::cout << "\n\n";
 
-  kdtree::Point<3> target(1, 3, 5);
-  kdtree::Point<3> currentBest1(1, 3, 2);
-  kdtree::Point<3> possibleBest1(2, 4, 4);
-  kdtree::Point<3> currentBest2(1, 3, 6);
-  kdtree::Point<3> possibleBest2(2, 4, 4);
-  kdtree::Point<3> currentBest3(0, 2, 4);
-  kdtree::Point<3> possibleBest3(2, 4, 6);
+  kdtree::Point<3> target{1, 3, 5};
+  kdtree::Point<3> currentBest1{1, 3, 2};
+  kdtree::Point<3> possibleBest1{2, 4, 4};
+  kdtree::Point<3> currentBest2{1, 3, 6};
+  kdtree::Point<3> possibleBest2{2, 4, 4};
+  kdtree::Point<3> currentBest3{0, 2, 4};
+  kdtree::Point<3> possibleBest3{2, 4, 6};
   std::cout << shouldReplace(target, currentBest1, possibleBest1)
             << std::endl; // should print true
   std::cout << shouldReplace(target, currentBest2, possibleBest2)
             << std::endl; // should print false
   std::cout << shouldReplace(target, currentBest3, possibleBest3)
             << std::endl; // based on operator<, this should be false!!!
-  // */
+  */
 }
