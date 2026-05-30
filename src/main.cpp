@@ -9,33 +9,19 @@ int main() {
   tree.printTree();
 
   kdtree::Point<2, double> p{6.0, 3.0};
-  tree.findNearestNeighbor(p);
-  /*
-  std::cout << "Hello, kdtree world!" << std::endl;
-
-  std::vector<kdtree::Point<3>> points = {{1, 2, 3}, {3, 2, 1}, {2, 3, 1}};
-
-  kdtree::KDTree<3> tree(points);
-  tree.printTree();
+  auto nns = tree.findNearestNeighbor(p);
+  std::cout << nns << std::endl;
 
   std::cout << "\n\n";
-  */
 
-  /*
-  std::vector<kdtree::Point<2>> ex1 = {{30, 40}, {5, 25},  {10, 12},
-                                       {70, 70}, {50, 30}, {35, 45}};
-  kdtree::KDTree<2> tree1(ex1);
-  tree1.printTree();
-  */
-
-  /*
-  std::vector<kdtree::Point<2>> points = {
+  std::vector<kdtree::Point<2>> points2 = {
       {51, 35}, {44, 43}, {84, 44}, {28, 10}, {43, 65}, {60, 30}, {88, 72},
       {14, 15}, {48, 0},  {42, 63}, {44, 79}, {59, 0},  {74, 0},  {54, 62},
       {95, 50}, {34, 15}, {49, 83}, {82, 20}, {75, 68}, {96, 56}};
-  kdtree::KDTree<2> tree2(points);
+  kdtree::KDTree<2> tree2(points2);
   tree2.printTree();
-  */
+  auto nns2 = tree2.findNearestNeighbor(p);
+  std::cout << nns2 << std::endl;
   /*
   std::vector<int> vec = {1, 5, 3, 9, 10, 12, 4, 5, 11, 13, 3, 2, 52};
 

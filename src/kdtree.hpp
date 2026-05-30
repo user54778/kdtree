@@ -1,8 +1,10 @@
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cuchar>
 #include <initializer_list>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <vector>
 
@@ -40,7 +42,6 @@ template <std::size_t N, typename T = double> struct Point {
   const T &operator[](std::size_t i) const { return data_[i]; }
 
   // Overload `<` for comparison between points
-  // (underlying `std::already` is already defined so this just works)
   bool operator<(const Point &other) const { return data_ < other.data_; }
 };
 
@@ -129,7 +130,18 @@ template <std::size_t Dim, typename T = double>
 bool shouldReplace(const Point<Dim, T> &target,
                    const Point<Dim, T> &currentBest,
                    const Point<Dim, T> &potential) {
-  return computeDist(potential, target) < computeDist(currentBest, target);
+  // return computeDist(potential, target) < computeDist(currentBest, target);
+  auto a = computeDist(potential, target);
+  auto b = computeDist(currentBest, target);
+  if (a < b) {
+    return true;
+  } else if (a == b) {
+    std::cout << "potential: " << potential << std::endl;
+    std::cout << "currentBest: " << currentBest << std::endl;
+    return potential < currentBest;
+  } else {
+    return false;
+  }
 }
 
 // computeDist is a helper function to compute the Euclidean distance between
@@ -223,7 +235,8 @@ private:
   // Find a point in the KDTree nearest the given `query` point.
   // findNearestNeighbor calls this function, which does the actual nearest
   // neighbor search algorithm.
-  // This follows Moore's algorithm for Nearest Neighbor ina kd-tree.
+  //
+  // This follows Moore's algorithm for Nearest Neighbor
   // https://courses.grainger.illinois.edu/cs225/sp2026/assets/assignments/mps/mp_mosaics/moore-tutorial.pdf
   void nearestNeighborSearch(const std::unique_ptr<Node> &currNode,
                              const Point<Dim, T> &query,
@@ -246,8 +259,9 @@ private:
     auto pivot = currNode->point;
 
     // Moore 5: targetInLeft := target_s <= pivot_s
+    // Use the invariant of the kdtree to determine the lowest node in which to
+    // start with.
     bool targetInLeft = smallerDimensionValue(query, currNode->point, s);
-    // step 6/7
     // Moore 8: Recurse until a leaf node, checking the node point, and if the
     // distance is better, update distSqd.
     if (targetInLeft) {
@@ -261,12 +275,39 @@ private:
       nearestNeighborSearch(currNode->right, query, bestPoint, distSqd,
                             depth + 1);
     }
-    std::cout << currNode->point << std::endl;
-    return;
-    //
+    // At this point, the lowest bounding hyperrectangle (currNode) is the
+    // "current best" neighbor.
     // Moore 9: Check if any points are on the other side of the splitting plane
     // (within its radius)
-    // TODO: implement
+    // Traverse back up the k-d tree to the root. We want to find better matches
+    // that exist outside the containing hyperrectangle. currentBest defines a
+    // *radius* which contains the nearest neighbor. During this back traversal,
+    // we need to check if the distance to the parent node is *less* than the
+    // current radius, and if so, that defines the new radius. You must then
+    // check if the current splitting plane's distance from the search node is
+    // within the current radius. If this is the case, an opposite subtree can
+    // contain a closer node, and must be recursively searched.
+    //
+    // NOTE: We are
+    // ONLY checking the subtrees *within the current radius* or else you lose
+    // efficiency of the kd-tree.
+    //
+    // nearer is the nearer pt in the unchecked subtree we check
+    auto nearer = query[s] - currNode->point[s];
+    nearer = std::pow(nearer, 2);
+    if (nearer < distSqd) {
+      if (shouldReplace(query, bestPoint, currNode->point)) {
+        bestPoint = currNode->point;
+        distSqd = computeDist(bestPoint, query);
+      }
+      if (targetInLeft) {
+        nearestNeighborSearch(currNode->right, query, bestPoint, distSqd,
+                              depth + 1);
+      } else {
+        nearestNeighborSearch(currNode->left, query, bestPoint, distSqd,
+                              depth + 1);
+      }
+    }
   }
 
 public:
@@ -297,8 +338,11 @@ public:
     return *this;
   }
 
-  // Find the closest point to the point `query` in the `KDTree`.
-  // The closest here is the minimum Euclidean distance between elements.
+  // The findNearestNeighbor search is done in two steps: a search to find the
+  // smallest hyperrectangle that contains the target element, and then a back
+  // traversal to see if any other hyperrectangle could contain a closer point,
+  // which may be a point with smaller distance or a point with equal distance,
+  // but a “smaller” point.
   Point<Dim, T> findNearestNeighbor(const Point<Dim, T> &query) const {
     // starting at the root node, perform dfs on the kd-tree to determine where
     // to start based on the `query`; i.e., dfs to find the lowest node with the
@@ -312,7 +356,7 @@ public:
     // split the plane is still within the current radius, search the other
     // subtree.
     Point<Dim, T> bestPoint = root_->point;
-    T distSqd = computeDist(query, root_->point);
+    T distSqd = std::numeric_limits<T>::infinity();
     nearestNeighborSearch(root_, query, bestPoint, distSqd, 0);
     return bestPoint;
   }
